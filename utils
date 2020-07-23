@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+"""
+@author:abner
+@file:create_annatation_xml.py
+@ datetime:2020/7/22 16:49
+@software: PyCharm
+
+"""
+
+from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import SubElement
+from xml.etree.ElementTree import ElementTree
+from xml.etree import ElementTree as ET
+
+class CreateAnnatationXml():
+    """ create object detection dataset annatation xml file
+       stand xml format ；
+       <?xml version="1.0"?>
+       <annotation>
+           <folder>OXIIIT</folder>
+           <filename>Abyssinian_11.jpg</filename>
+           <source>
+               <database>OXFORD-IIIT Pet Dataset</database>
+               <annotation>OXIIIT</annotation>
+               <image>flickr</image>
+           </source>
+           <size>
+               <width>192</width>
+               <height>288</height>
+               <depth>3</depth>
+           </size>
+           <object>
+                <name>cat</name>
+                <pose>Frontal</pose>
+                <truncated>0</truncated>
+                <occluded>0</occluded>
+                <bndbox>
+                    <xmin>43</xmin>
+                    <ymin>57</ymin>
+                    <xmax>94</xmax>
+                    <ymax>105</ymax>
+                </bndbox>
+                <difficult>0</difficult>
+            </object>
+
+        </annotation>
+    """
+
+    def __init__(self,width,height):
+
+        self.root = Element("annatation")
+        self.folder = SubElement(self.root, "folder")
+        self.filename = SubElement(self.root, "filename")
+
+        self.source = SubElement(self.root, "source")
+        self.database = SubElement(self.source, "database")
+
+        self.size = SubElement(self.root, "size")
+
+        self.size_width = SubElement(self.size, "width")
+        self.size_width.text = width
+        self.size_height = SubElement(self.size, "height")
+        self.size_height.text = height
+        self.depth = SubElement(self.size, "depth")
+
+
+
+    def set_object(self,name,xmin,ymin,xmax,ymax):
+        anna_object = SubElement(self.root, "object")
+        object_name = SubElement(anna_object, "name")
+        object_name.text = name
+
+        objecrt_bndbox = SubElement(anna_object, "bndbox")
+        bndbox_xmin = SubElement(objecrt_bndbox,"xmin")
+        bndbox_xmin.text = xmin
+        bndbox_ymin = SubElement(objecrt_bndbox, "ymin")
+        bndbox_ymin.text = ymin
+        bndbox_xmax = SubElement(objecrt_bndbox, "xmax")
+        bndbox_xmax.text = xmax
+        bndbox_ymax = SubElement(objecrt_bndbox, "ymax")
+        bndbox_ymax.text = ymax
+
+    def save_xml_file(self,filename):
+        tree = ElementTree(self.root)
+        tree.write(filename, encoding='utf-8')
+
+
+class ChangeAnanatationXml():
+    def __init__(self,filename):
+        self.xml_paht = filename
+        self.tree = ET.parse(self.xml_paht)
+        self.root = self.tree.getroot()
+    def change_node_text(self,org_att_text,new_att_text):
+        ob = self.root.findall("object")
+        print(len(ob))
+        for na in ob:
+            name = na.find('name')
+            if name == org_att_text:
+                print("ob ", name.text)
+                name.text = new_att_text
+
+
+        self.tree.write(self.xml_paht)
+
+
+
+
+
+
+if __name__ == "__main__":
+    path = "test.xml"
+    cax = ChangeAnanatationXml(path)
+    cax.change_node_text()
