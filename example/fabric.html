@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.7.1/jquery.contextMenu.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.7.1/jquery.contextMenu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.7.1/jquery.ui.position.js"></script>
+</head>
+<body>
+    <div style="display: flex;">
+        <canvas id="canvas" width="520" height="720" style="border:1px solid #d3d3d3;">
+            这是浏览器不支持canvas时展示的信息
+        </canvas>
+        <div id="contextmenu-output"></div>
+         <img id="img" src='/static/jzx.jpg'  />
+    </div>
+     <div>
+        <input accept=".png,.jpg,.jpeg" type="file" id="file" onchange="myFile(file)" />
+
+    </div>
+
+    </div>
+    <script src="/static/fabric.min.js"></script>
+
+    <script>
+        let painting = false;
+        let firstpoint = {x:undefined,y:undefined};
+        let lastPoint = {x:undefined,y:undefined};
+        var imgElement = document.getElementById("img")
+        var canvas = new fabric.Canvas('canvas');
+
+         var imgInstance = new fabric.Image(imgElement,{  //设置图片在canvas中的位置和样子
+             left:0,
+             top:0,
+             width:520,
+             height:720,
+             //angle:30//设置旋转
+        });
+
+        canvas.setBackgroundImage(imgInstance);
+        canvas.selections=false//取消框选
+        function setBackgroundImage(){
+            var imgElement = document.getElementById("img")
+
+
+             var imgInstance = new fabric.Image(imgElement,{  //设置图片在canvas中的位置和样子
+                 left:0,
+                 top:0,
+                 width:520,
+                 height:720,
+                 //angle:30//设置旋转
+             });
+            canvas.setBackgroundImage(imgInstance);
+
+        }
+
+        //点击img触发
+        function myFile(file) {
+            canvas.clear();
+            const imgsize = file.files[0]
+            const render = new FileReader()
+            render.readAsDataURL(imgsize)
+            render.onload = (e) => {
+                // console.log(e, 'e')
+                const src = e.target.result
+                //console.log(src)
+                img.src = src
+                srcImg = src
+                //canvasPart(src)
+                setBackgroundImage();
+
+            }
+
+        }
+        // 按下鼠标
+        canvas.on('mouse:down', function(options){
+            //var options = ev || window.event;
+            var x = options.e.clientX ;
+            var y = options.e.clientY ;
+            firstPoint = {"x":x,"y":y};
+            console.log("down",options.e.clientX, options.e.clientY)
+        });
+        // 鼠标移动
+        canvas.on('mouse:move', function(options) {
+            //var options = ev || window.event;
+            //console.log("move",options.e.clientX, options.e.clientY)
+        });
+        // 鼠标停止移动
+        canvas.on('mouse:up', function(options) {
+            //var options = ev || window.event;
+            var x = options.e.clientX ;
+            var y = options.e.clientY ;
+            lastPoint = {"x":x,"y":y};
+            drawRect(firstPoint.x,firstPoint.y,lastPoint.x-firstPoint.x,lastPoint.y-firstPoint.y);
+
+            console.log("up",options.e.clientX, options.e.clientY)
+        });
+
+
+        function drawRect(t,l,w,h){
+        //var canvas = new fabric.Canvas('canvas');
+        console.log(t,l,w,h)
+        var rect = new fabric.Rect({
+            top : l, //距离画布上边的距离
+            left : t, //距离画布左侧的距离，单位是像素
+            width : w, //矩形的宽度
+            height : h, //矩形的高度
+            fill:'#00000000',
+            evented: false,//rect 无法被选中
+            stroke: 'red', // 边框原色
+            strokeWidth: 3, // 边框大小
+        });
+
+        //canvas.add(new fabric.Group([imgInstance,rect]));
+        canvas.add(rect);
+        }
+
+         window.onload = function () {
+             //alert("onload")
+             //在canvas上层对象上添加右键事件监听
+             $(".upper-canvas").contextmenu(onContextmenu);
+
+             //初始化右键菜单
+            $.contextMenu({
+                selector: '#contextmenu-output',
+                trigger: 'none',
+                build: function ($trigger, e) {
+                    //构建菜单项build方法在每次右键点击会执行
+                    return {
+                        callback: contextMenuClick,
+                        items: contextMenuItems
+                    };
+                },
+            });
+         }
+
+        //右键点击事件响应
+        function onContextmenu(event) {
+            var pointer = canvas.getPointer(event.originalEvent);
+            var objects = canvas.getObjects();
+            for (var i = objects.length - 1; i >= 0; i--) {
+                var object = objects[i];
+                //判断该对象是否在鼠标点击处
+                if (canvas.containsPoint(event, object)) {
+
+                    //选中该对象
+                    canvas.setActiveObject(object);
+                    //alert("你好，我是一个警告框！")
+                    //显示菜单
+                    showContextMenu(event, object);
+                    //alert("eee")
+                    continue;
+                }
+            }
+
+            //阻止系统右键菜单
+            event.preventDefault();
+            return false;
+        }
+
+
+
+        //右键菜单项点击
+        function showContextMenu(event, object) {
+
+            //定义右键菜单项
+            contextMenuItems = {
+                "delete": { name: "删除", icon: "delete", data: object },
+                "add": { name: "新增标签", icon: "add", data: object },
+                "label": { name: "标签", icon: "label", data: object },
+            };
+            //右键菜单显示位置
+            var position = {
+                x: event.clientX,
+                y: event.clientY
+            }
+            //alert("dfnk")
+            // 显示菜单
+            $('#contextmenu-output').contextMenu(position);
+        }
+
+        //右键菜单项点击
+        function contextMenuClick(key, options) {
+            if (key == "delete") {
+                //得到对应的object并删除
+                var object = contextMenuItems[key].data;
+                canvas.remove(object);
+            }else if(key = "label"){
+                alert(contextMenuItems[key].name)
+            }
+        }
+    </script>
+</body>
+</html>
