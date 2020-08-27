@@ -14,7 +14,7 @@
     <!-- <div style="display:flex; ">
       
     </div>-->
-    <canvas id="canvas" ref="canvas" width="400" height="240">这是浏览器不支持canvas时展示的信息</canvas>
+    <canvas id="canvas" ref="canvas" width="500" height="500">这是浏览器不支持canvas时展示的信息</canvas>
     <div id="contextmenu-output"></div>
     <img id="img" src="../../images/avator.jpg" style="display: none;" />
 
@@ -96,10 +96,7 @@ export default {
     //初始化画板并监听画板鼠标
     this.initCanvas()
     
-    // this.canvas.setBackgroundImage(this.imgInstance);
-    // this.canvas.selections = false; //取消框选
-
-    
+    //初始化右键菜单
     this.onloadMenu()
     
     
@@ -107,6 +104,7 @@ export default {
     
   },
   methods: {
+
 
     //添加右击事件并初始化
     onloadMenu(){
@@ -141,7 +139,6 @@ export default {
       //初始化画板
       this.canvas = new fabric.Canvas("canvas",{
         isDrawingMode:false,
-      
         devicePixelRatio:true,// Retina 高清屏，支持
       });
       // 实例化背景图
@@ -149,10 +146,10 @@ export default {
         //设置图片在canvas中的位置和样子
         left: 0,
         top: 0,
-        width: 400,
-        height: 240,
-        // scaleX: 1,
-        // scaleY: 1
+        width: this.canvas.width,
+        height: this.canvas.height,
+        // scaleX:this.canvas.width/this.imgElement.width,
+        // scaleY:this.canvas.height/this.imgElement.height
         //angle:30//设置旋转
       });
 
@@ -179,11 +176,13 @@ export default {
         //console.log("move", options.e.clientX, options.e.clientY)
       });
     
+      // 当松开鼠标的时候把矩形框画出来
       this.canvas.on("mouse:up", (options) => {
-        //var options = ev || window.event;
+        // 获得鼠标坐标
         var x = options.pointer.x;
         var y = options.pointer.y;
         this.lastPoint = { x: x, y: y };
+        // 调用 darwRect进行画框
         this.drawRect(
           this.firstPoint.x,
           this.firstPoint.y,
@@ -204,10 +203,16 @@ export default {
 
 
     setImgCanvas(url) {
+      
       //获取到
-      //  this.setBackgroundImage(url);
       this.imgElement.src = url;
       this.canvas.clear();
+      console.log("bg ",this.canvas.width/this.imgElement.width,this.imgElement.width,this.imgElement.height)
+      
+      //自适应图片大小和画板一致
+      this.imgInstance.scaleToWidth(this.canvas.getWidth());
+      //this.canvas.add(image);
+      //设置背景
       this.canvas.setBackgroundImage(this.imgInstance);
     },
     
@@ -224,7 +229,7 @@ export default {
         strokeWidth: 3, // 边框大小
       });
 
-      //canvas.add(new fabric.Group([imgInstance,rect]));
+      //添加矩形框
       this.canvas.add(rect);
     },
 
@@ -233,21 +238,20 @@ export default {
       //阻止系统右键菜单
       event.preventDefault();
       var pointer = this.canvas.getPointer(event.originalEvent);
+      //获取画布所有矩形目标
       var objects = this.canvas.getObjects();
-      console.log("objects ", objects.length)
-      //console.log("this#############")
+      //遍历所有矩形目标
       for (var i = objects.length - 1; i >= 0; i--) {
         this.object = objects[i];
-        console.log("this.object :",this.object)
         //判断该对象是否在鼠标点击处
         if (this.canvas.containsPoint(event, this.object)) {
           //选中该对象
           this.canvas.setActiveObject(this.object);
-          //alert("你好，我是一个警告框！")
+          
           //显示菜单
           this.showContextMenu(event, this.object);
           //显示右击菜单，获取选中的key值，并且调用contextMenuClick
-          //console.log(event.clientX);
+          
           $(".context-menu-root")
             .css("left", event.clientX)
             .css("top", event.clientY)
@@ -276,10 +280,10 @@ export default {
       };
       // 显示菜单
       $("#contextmenu-output").contextMenu(this.position);
-      console.log("hhahahahahahah")
+      
     },
 
-    // 点击菜单后的触发事件
+    //右键点击菜单后的触发事件
     contextMenuClick(key,position) {
       let _this = this
       console.log("key",key)
