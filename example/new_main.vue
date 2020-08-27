@@ -68,6 +68,7 @@ export default {
       contextMenuItems: null,
       position: {},
       key: "",
+      obj_data:{},//保存图片矩形框坐标
       object: {},
     };
   },
@@ -146,10 +147,10 @@ export default {
         //设置图片在canvas中的位置和样子
         left: 0,
         top: 0,
-        width: this.canvas.width,
-        height: this.canvas.height,
-        // scaleX:this.canvas.width/this.imgElement.width,
-        // scaleY:this.canvas.height/this.imgElement.height
+        width: this.imgElement.width,
+        height: this.imgElement.height,
+        scaleX:this.canvas.width/this.imgElement.width,
+        scaleY:this.canvas.height/this.imgElement.height
         //angle:30//设置旋转
       });
 
@@ -204,14 +205,50 @@ export default {
 
     setImgCanvas(url) {
       
+      var pre_img_width,pre_img_height;
+      //1.获取图像实际大小
+      pre_img_width = this.imgInstance.width;
+      pre_img_height = this.imgInstance.height;
+      
+       //3 获取画布所有矩形目标
+      var objects = this.canvas.getObjects();
+      //alert(objects.length);
+      for (var i = objects.length - 1; i >= 0; i--) {
+        this.object = objects[i];
+        console.log(this.object);
+        //判断该对象是否在鼠标点击处
+        console.log(this.object.left,this.object.top,this.object.width,this.object.height)
+       
+      }
+
+      // 1.获取图像实际大小，2.获得画板大小（画板固定），3.遍历所有画板上的object取坐标值
+      
+       //获取画布所有矩形目标
+      var objects = this.canvas.getObjects();
+      //alert(objects.length);
       //获取到
       this.imgElement.src = url;
+      //清空画板
       this.canvas.clear();
       console.log("bg ",this.canvas.width/this.imgElement.width,this.imgElement.width,this.imgElement.height)
       
       //自适应图片大小和画板一致
-      this.imgInstance.scaleToWidth(this.canvas.getWidth());
-      //this.canvas.add(image);
+      // this.imgInstance.scaleToWidth(this.canvas.width);
+      // this.imgInstance.scaleToHeight(this.canvas.height);
+      //this.canvas.add(this.imgInstance);
+      // var imgInstance = new fabric.Image.fromURL(url);
+      // var bgImage;
+      this.imgInstance = new fabric.Image(this.imgElement, {
+        //设置图片在canvas中的位置和样子
+        left: 0,
+        top: 0,
+        width: this.imgElement.width,
+        height: this.imgElement.height,
+        scaleX:this.canvas.width/this.imgElement.width,
+        scaleY:this.canvas.height/this.imgElement.height
+        //angle:30//设置旋转
+      });
+     
       //设置背景
       this.canvas.setBackgroundImage(this.imgInstance);
     },
