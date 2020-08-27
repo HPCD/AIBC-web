@@ -96,12 +96,6 @@ export default {
     //初始化画板并监听画板鼠标
     this.initCanvas()
     
-
-    window.onload = function () {
-      let _this = this  
-
-    }
-
     // this.canvas.setBackgroundImage(this.imgInstance);
     // this.canvas.selections = false; //取消框选
 
@@ -126,8 +120,6 @@ export default {
         trigger: "none",
         build: function ($trigger, e) {
           var item = _this.contextMenuItems
-          console.log("_this itme ",item)
-          console.log("youjian",this.contextMenuItems)
           //构建菜单项build方法在每次右键点击会执行
           return {
             callback: _this.contextMenuClick,
@@ -242,9 +234,11 @@ export default {
       event.preventDefault();
       var pointer = this.canvas.getPointer(event.originalEvent);
       var objects = this.canvas.getObjects();
+      console.log("objects ", objects.length)
       //console.log("this#############")
       for (var i = objects.length - 1; i >= 0; i--) {
         this.object = objects[i];
+        console.log("this.object :",this.object)
         //判断该对象是否在鼠标点击处
         if (this.canvas.containsPoint(event, this.object)) {
           //选中该对象
@@ -286,17 +280,17 @@ export default {
     },
 
     // 点击菜单后的触发事件
-    contextMenuClick() {
+    contextMenuClick(key,position) {
       let _this = this
-      console.log("key",this.key)
+      console.log("key",key)
       // alert(this.key);
-      if (this.key == "delete") {
+      if (key == "delete") {
         //得到对应的object并删除
-        var object = _this.contextMenuItems[this.key].data;
+        var object = this.contextMenuItems[key].data;
         this.canvas.remove(object);   //删除矩形框
       } else if ((this.key = "label")) {
-        alert(this.contextMenuItems[this.key].name);
-        console.log("label",this.key )
+        alert(this.contextMenuItems[key].name);
+        console.log("label",key )
       }
     },
   },
