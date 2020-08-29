@@ -58,17 +58,22 @@ export default {
       position: {},
       key: "",
       object: {},
-      obj_list:[],
-      currentImgUrl: "",
-      imgInfos: {
+      obj_list: [],
+      // currentImgUrl: "",
+      imgInfos: [
         //用于存储图片信息{url:[]}
-        
-      },
+      ],
       singleImg: {},
       rects_list: [], //一个矩形框信息
+      //lastImgInfo:[],//保存上一张图片信息
     };
   },
-  created() {},
+  created() {
+    //从本地中加载数据   或 从数据库中获取数据
+    if (localStorage.getItem("imgInfos")) {
+      // this.imgInfos = JSON.parse(localStorage.getItem("imgInfos"));
+    }
+  },
   mounted() {
     //  设置图片缩略图
     var galleryThumbs = new Swiper(".gallery-thumbs", {
@@ -95,10 +100,8 @@ export default {
       },
     });
     //获取swiper当前显示1页url
-
     //初始化画板并监听画板鼠标
     this.initCanvas();
-
     //初始化右键菜单
     this.onloadMenu();
   },
@@ -142,8 +145,8 @@ export default {
         top: 0,
         width: this.imgElement.width,
         height: this.imgElement.height,
-        scaleX:this.canvas.width/this.imgElement.width,
-        scaleY:this.canvas.height/this.imgElement.height
+        scaleX: this.canvas.width / this.imgElement.width,
+        scaleY: this.canvas.height / this.imgElement.height,
         //angle:30//设置旋转
       });
       // 绑定画板事件
@@ -160,13 +163,11 @@ export default {
         this.isDrawing = true;
         console.log("start", options.e.clientX, options.e.clientY);
       });
-
       // 移动鼠标
       this.canvas.on("mouse:move", function (options) {
         //var options = ev || window.event;
         //console.log("move", options.e.clientX, options.e.clientY)
       });
-
       // 当松开鼠标的时候把矩形框画出来
       this.canvas.on("mouse:up", (options) => {
         // 获得鼠标坐标
@@ -180,9 +181,21 @@ export default {
           this.lastPoint.x - this.firstPoint.x,
           this.lastPoint.y - this.firstPoint.y
         );
-      var rect = new Array( this.firstPoint.x,this.firstPoint.y,this.lastPoint.x - this.firstPoint.x,this.lastPoint.y - this.firstPoint.y);
-      this.rects_list.push(rect);
-      console.log("rectrf",this.rects_list)
+
+        //var rect = new Array(this.firstPoint.x ,this.firstPoint.y,this.lastPoint.x - this.firstPoint.x,this.lastPoint.y - this.firstPoint.y);
+        this.rects_list.push(
+          this.firstPoint.x +
+            "-" +
+            this.firstPoint.y +
+            "&" +
+            (this.lastPoint.x - this.firstPoint.x) +
+            "-" +
+            (this.lastPoint.y - this.firstPoint.y)
+        );
+
+        //console.log(this.firstPoint.x+"-"+this.firstPoint.y+"&"+(this.lastPoint.x - this.firstPoint.x)+"-"+(this.lastPoint.y - this.firstPoint.y))
+        console.log("rets_list 值为 ", this.rects_list);
+        this.singleImg["rects_list"] = this.rects_list;
         console.log(
           "end",
           this.firstPoint.x,
@@ -192,29 +205,107 @@ export default {
         );
         //console.log("up", options.e.clientX, options.e.clientY)
         //保存坐标信息
-        var singlerRect = {};
-        singlerRect.firstPoint = this.firstpoint;
-        singlerRect.lastPoint = this.lastPoint;
+        // var singlerRect = {};
+        // singlerRect.firstPoint = this.firstpoint;
+        // singlerRect.lastPoint = this.lastPoint;
       });
     },
     setImgCanvas(url) {
-      // let _this = this;
-      // console.log("url ",_this.imgElement.src)
-      //获取到
-      this.imgElement.src = url;
-      this.canvas.clear();
-      this.rects_list = []
-      // console.log(
-      //   "bg ",
-      //   this.canvas.width / this.imgElement.width,
-      //   this.imgElement.width,
-      //   this.imgElement.height
-      // );
+      // this.drawRect(150,150,30,70);
+      //console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+      var _this = this;
+      console.log("查看imgInfo有多少 ： ", _this.imgInfos);
+      // 首先清空之前画布
+      _this.canvas.clear();
+      console.log("上一张 ", _this.singleImg.url);
+      //保存上一张图片信息
+      var lastImgInfo = [];
+      lastImgInfo["url"] = _this.singleImg.url;
+      lastImgInfo["rects_list"] = _this.singleImg.rects_list;
+      _this.singleImg = [];
+      //把当前图片url 保存
+      this.singleImg["url"] = url;
+      //rects_list 默认为空
+      this.singleImg["rects_list"] = [];
+      //*****************加载图片信息********************** */
+      //从imgInfo中加载图片信息
+      //判断imgInfos中是否已经存在那张图片,如果存在取index,加载坐标信息，如果不在则把url 信息加载添加到imgInfos中
+      if (_this.imgInfos.length == 0) {
+        alert("首次加载");
+        //第一次加载
+        console.log("首次加载的url", _this.singleImg.url);
+        _this.imgInfos.push(_this.singleImg);
+        _this.rects_list = [];
+        //将数据进行持久化，保存到本地或者数据库
+        // localStorage.setItem("imgInfos", JSON.stringify(_this.imgInfos));
+      } else {
+        console.log("非首次加载进入", lastImgInfo.url);
+        //判断上一张图片是否已保存，存在更新，不存在，保存起来
+        var last_index = -1;
+        if (_this.imgInfos.length > 0) {
+          last_index = _this.imgInfos.findIndex((imgObj, last_index) => {
+            return imgObj.url === lastImgInfo.url;
+          });
+        }
+        console.log("需要保存的上一张图片信息 ", lastImgInfo);
+        if (last_index == -1) {
+          console.log("上次索引是-1");
+          _this.imgInfos.push(lastImgInfo);
+        } else {
+          console.log("先删除图片在保存");
+          if (lastImgInfo.rects_list.length != 0) {
+             _this.imgInfos.splice(last_index,1);
+            _this.imgInfos.push(lastImgInfo);
+          }
 
-      //自适应图片大小和画板一致
-      this.imgInstance.scaleToWidth(this.canvas.getWidth());
-      this.imgInstance.scaleToHeight(this.canvas.getHeight());
-      //this.canvas.add(image);
+          //将数据进行持久化，保存到本地或者数据库
+          //  localStorage.setItem("imgInfos", JSON.stringify(_this.imgInfos));
+        }
+        //如果不为0，先保存上一张图和坐标信息，取url,判断是否有框，有就画框
+
+        _this.rects_list = [];
+        var index = -1;
+        if (_this.imgInfos.length > 0) {
+          index = _this.imgInfos.findIndex((imgObj, index) => {
+            return imgObj.url === url;
+          });
+        }
+
+        console.log("获取index ", index);
+        // 根据当前图片索引画框
+        if (index != -1) {
+          console.log("开始进入画框", _this.imgInfos[index]["rects_list"]);
+          //则将该图片信息加载出来，再在图片上绘制矩形框
+          if (_this.imgInfos[index]["rects_list"]) {
+            //如果图片中已经有矩形坐标
+            _this.rects_list = _this.imgInfos[index]["rects_list"];
+            //绘制矩形
+            for (let i = 0; i < _this.rects_list.length; i++) {
+              var strs = _this.rects_list[i].split("&");
+              var cords = strs[0].split("-");
+              var rectWH = strs[1].split("-");
+              console.log("开始绘制了，准备");
+              // console.log("parseFloat(cords[0])",parseFloat(cords[0]))
+              //  console.log("parseFloat(cords[1])",parseFloat(cords[1]))
+              _this.drawRect(
+                parseFloat(cords[0]),
+                parseFloat(cords[1]),
+                parseFloat(rectWH[0]),
+                parseFloat(rectWH[1])
+              );
+
+              // this.drawRect(200,280,30,70);
+            }
+          }
+        }
+
+        //****************************************** */
+      }
+
+      //###########加载背景图############
+
+      //获取到
+      _this.imgElement.src = url;
 
       this.imgInstance = new fabric.Image(this.imgElement, {
         //设置图片在canvas中的位置和样子
@@ -222,41 +313,23 @@ export default {
         top: 0,
         width: this.imgElement.width,
         height: this.imgElement.height,
-        scaleX:this.canvas.width/this.imgElement.width,
-        scaleY:this.canvas.height/this.imgElement.height
+        scaleX: this.canvas.width / this.imgElement.width,
+        scaleY: this.canvas.height / this.imgElement.height,
         //angle:30//设置旋转
       });
       //设置背景
       this.canvas.setBackgroundImage(this.imgInstance);
-      //保存图片信息
-      this.singleImg.url = this.currentImgUrl;
-      this.currentImgUrl = "";
-      
-      
-      //点击下一张图片，则保存上一张图片信息
-      this.singleImg.rects = this.rects;
-      console.log(this.singleImg);
-      //判断imgInfos中是否已经存在那张图片
-      // var index = this.imgInfos.findIndex((imgObj, index) => {
-      //   return imgObj.url === this.singleImg.url;
-      // });
-      // if (index != -1 && this.singleImg.rects.length > 0) {
-      //   this.imgInfos.splice(index, 1); //将原先的删除
-      // }
-      // this.imgInfos.push(this.singleImg); //保存上一张图片信息
-      //发送ajax请求将数据存储到后端数据库################################
 
+      //###########加载背景图############
+
+      //发送ajax请求将数据存储到后端数据库################################
       //##############################################
 
-      //再将数清空
-      this.singleImg = {};
-      this.rects = [];
-      
-      console.log(this.imgInfos.length);
+      // console.log("imginfo" + window.JSON.stringify(this.imgInfos)); //打印上一张图片时所有图片数量
     },
-
     // 画矩形
     drawRect(t, l, w, h) {
+      console.log("@@@@@@@@@@@@@@@@@@@", t, l, w, h);
       var rect = new fabric.Rect({
         top: l, //距离画布上边的距离
         left: t, //距离画布左侧的距离，单位是像素
@@ -267,8 +340,7 @@ export default {
         stroke: "red", // 边框原色
         strokeWidth: 3, // 边框大小
       });
-      
-      
+
       //添加矩形框
       this.canvas.add(rect);
     },
@@ -286,11 +358,9 @@ export default {
         if (this.canvas.containsPoint(event, this.object)) {
           //选中该对象
           this.canvas.setActiveObject(this.object);
-
           //显示菜单
           this.showContextMenu(event, this.object);
           //显示右击菜单，获取选中的key值，并且调用contextMenuClick
-
           $(".context-menu-root")
             .css("left", event.clientX)
             .css("top", event.clientY)
@@ -321,22 +391,29 @@ export default {
     //右键点击菜单后的触发事件
     contextMenuClick(key, position) {
       let _this = this;
-      console.log("key", key);
+      //console.log("key", key);
       // alert(this.key);
       if (key == "delete") {
         let _this = this;
         //得到对应的object并删除
         var object = this.contextMenuItems[key].data;
-        console.log("before delete list",_this.rects_list)
-        console.log("dfdg",object.left,object.top,object.width,object.height);
-        var temp_rect = new Array(object.left,object.top,object.width,object.height);
+        //console.log("before delete list",_this.rects_list)
+        //console.log("dfdg",object.left,object.top,object.width,object.height);
+        var temp_rect =
+          object.left +
+          "-" +
+          object.top +
+          "&" +
+          object.width +
+          "-" +
+          object.height;
         var index = _this.rects_list.indexOf(temp_rect);
-      //   var index = _this.rects_list.findIndex((gOimbj, index) => {
-      //   return imgObj.url === this.singleImg.url;
-      // });
-        console.log("index",index);
-        _this.rects_list.splice(index,1);
-        console.log("delete list",_this.rects_list)
+        //   var index = _this.rects_list.findIndex((gOimbj, index) => {
+        //   return imgObj.url === this.singleImg.url;
+        // });
+        // console.log("index",index);
+        _this.rects_list.splice(index, 1);
+        //console.log("delete list",_this.rects_list)
         this.canvas.remove(object); //删除矩形框
       } else if ((this.key = "label")) {
         alert(this.contextMenuItems[key].name);
