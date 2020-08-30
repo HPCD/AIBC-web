@@ -5,7 +5,7 @@
     <!-- <div style="display:flex; ">
       
     </div>-->
-    <canvas id="canvas" ref="canvas" width="400" height="350">这是浏览器不支持canvas时展示的信息</canvas>
+    <canvas id="canvas" ref="canvas" width="500" height="500">这是浏览器不支持canvas时展示的信息</canvas>
     <div id="contextmenu-output"></div>
     <img id="img" src="../../images/avator.jpg" style="display: none;" />
 
@@ -25,6 +25,14 @@
     </div>
     <div>
       <button class="with-cool-menu">Jquery-contextmenu</button>
+    </div>
+    <div class="list_label">
+      <ul>
+        <li v-for="item in labels" :key="item">{{item}}</li>
+        <el-button type="text" @click="open">
+          <span style="font-size: 20px;">+</span>新增标签
+        </el-button>
+      </ul>
     </div>
   </div>
 </template>
@@ -66,6 +74,7 @@ export default {
       singleImg: {},
       rects_list: [], //一个矩形框信息
       //lastImgInfo:[],//保存上一张图片信息
+      labels: ["1", "2", "3"],
     };
   },
   created() {
@@ -78,7 +87,7 @@ export default {
     //  设置图片缩略图
     var galleryThumbs = new Swiper(".gallery-thumbs", {
       spaceBetween: 10,
-      slidesPerView: 4,
+      slidesPerView: 5,
       freeMode: true,
       watchSlidesVisibility: true,
       watchSlidesProgress: true,
@@ -182,6 +191,8 @@ export default {
           this.lastPoint.y - this.firstPoint.y
         );
 
+        //右键选择框弹出
+
         //var rect = new Array(this.firstPoint.x ,this.firstPoint.y,this.lastPoint.x - this.firstPoint.x,this.lastPoint.y - this.firstPoint.y);
         this.rects_list.push(
           this.firstPoint.x +
@@ -254,7 +265,7 @@ export default {
         } else {
           console.log("先删除图片在保存");
           if (lastImgInfo.rects_list.length != 0) {
-             _this.imgInfos.splice(last_index,1);
+            _this.imgInfos.splice(last_index, 1);
             _this.imgInfos.push(lastImgInfo);
           }
 
@@ -284,15 +295,34 @@ export default {
               var strs = _this.rects_list[i].split("&");
               var cords = strs[0].split("-");
               var rectWH = strs[1].split("-");
-              console.log("开始绘制了，准备");
-              // console.log("parseFloat(cords[0])",parseFloat(cords[0]))
-              //  console.log("parseFloat(cords[1])",parseFloat(cords[1]))
-              _this.drawRect(
+              console.log("strs.length",strs.length);
+              // 添加标签,还没把没有标签的情形房间去考虑
+              if(strs.length==3){
+                
+                var label_name = strs[2];
+                 _this.drawRectAndText(label_name,
+                //调了位置，不然矩形有问题
+                parseFloat(cords[1]),
+                parseFloat(cords[0]),
+                parseFloat(rectWH[0]),
+                parseFloat(rectWH[1])
+              );
+
+              }else{
+                _this.drawRect(
                 parseFloat(cords[0]),
                 parseFloat(cords[1]),
                 parseFloat(rectWH[0]),
                 parseFloat(rectWH[1])
               );
+
+              }
+              
+              console.log("开始绘制了，准备");
+              // console.log("parseFloat(cords[0])",parseFloat(cords[0]))
+              //  console.log("parseFloat(cords[1])",parseFloat(cords[1]))
+              
+              
 
               // this.drawRect(200,280,30,70);
             }
@@ -371,15 +401,34 @@ export default {
       }
       return false;
     },
+
+    // 动态加载菜单
+    loadMean(object){
+
+      var _this = this;
+      //循环遍历标签数组加载标签项到右键菜单
+      for(var i=0;i<_this.labels.length;i++){
+        var obj = {};
+        obj["name"] = _this.labels[i];
+        obj["icon"] =  "label";
+        obj["data"] =  object;
+        // 加入到菜单
+        _this.contextMenuItems[`label${i}`] = obj;
+      }
+
+    },
+
     //显示菜单内容
     showContextMenu(event, object) {
       let _this = this;
-      //定义右键菜单项
+      //定义右键菜单项，默认菜单功能
       this.contextMenuItems = {
         delete: { name: "删除", icon: "delete", data: object },
         add: { name: "新增标签", icon: "add", data: object },
-        label: { name: "标签", icon: "label", data: object },
       };
+       
+      //动态加载菜单
+      this.loadMean(object);
       //右键菜单显示位置
       this.position = {
         x: event.clientX,
@@ -391,14 +440,13 @@ export default {
     //右键点击菜单后的触发事件
     contextMenuClick(key, position) {
       let _this = this;
-      //console.log("key", key);
+      console.log("key", key);
       // alert(this.key);
       if (key == "delete") {
-        let _this = this;
+        //let _this = this;
         //得到对应的object并删除
         var object = this.contextMenuItems[key].data;
-        //console.log("before delete list",_this.rects_list)
-        //console.log("dfdg",object.left,object.top,object.width,object.height);
+        
         var temp_rect =
           object.left +
           "-" +
@@ -407,6 +455,7 @@ export default {
           object.width +
           "-" +
           object.height;
+
         var index = _this.rects_list.indexOf(temp_rect);
         //   var index = _this.rects_list.findIndex((gOimbj, index) => {
         //   return imgObj.url === this.singleImg.url;
@@ -415,14 +464,138 @@ export default {
         _this.rects_list.splice(index, 1);
         //console.log("delete list",_this.rects_list)
         this.canvas.remove(object); //删除矩形框
-      } else if ((this.key = "label")) {
-        alert(this.contextMenuItems[key].name);
+      } else if (key == "label0") {
+        console.log("输出的标签为: ",key,this.contextMenuItems);
+        var new_key = key;
+        console.log("根据key获得",this.contextMenuItems[new_key]);
+        var label_name = this.contextMenuItems[key].name
+        console.log('根据key 获得的name ',label_name);
+        // 把标签和坐标保存
+        var object = this.contextMenuItems[key].data;
+        //没有标签的的矩形框
+        var temp_rect =  object.left +
+          "-" +
+          object.top +
+          "&" +
+          object.width +
+          "-" +
+          object.height;
+
+        //增加了标签的矩形框
+        var temp_rect_label =  object.left +
+          "-" +
+          object.top +
+          "&" +
+          object.width +
+          "-" +
+          object.height +
+          "&"+
+          label_name;
+        //获取到矩形所在的索引
+        var index = _this.rects_list.indexOf(temp_rect);
+        console.log("删除之前的矩形信息",_this.rects_list);
+        //删除矩形信息
+        _this.rects_list.splice(index, 1);
+        //重新添加矩形信息
+        _this.rects_list.push(temp_rect_label);
+        console.log("查看更新标签后的矩形信息",_this.rects_list);
+        //把矩形框和文本框画出来
+        //1 文本框
+        // var text = new fabric.Text(label_name, {
+        //   originX: 'center',
+        //   originY: 'center',
+        //   left: object.left, 
+        //   top: object.top,
+        //   fill: 'red',
+        //   });
+        // 2 矩形框
+        // var rect = new fabric.Rect({
+        // top: object.top, //距离画布上边的距离
+        // left:object.left, //距离画布左侧的距离，单位是像素
+        // width: object.width, //矩形的宽度
+        // height: object.height, //矩形的高度
+        // fill: "#00000000",
+        // evented: false, //rect 无法被选中
+        // stroke: "red", // 边框原色
+        // strokeWidth: 3, // 边框大小
+        // });
+
+        // var group = new fabric.Group(
+        //   [rect, text]);
+
+        // //删除矩形框
+        // _this.canvas.remove(_this.canvas.getActiveObject());
+        // //3 添加矩形和文本信息
+        // _this.canvas.add(group);
+        var top = object.top;
+        var left = object.left;
+        var w = object.width;
+        var h = object.height
+        this.drawRectAndText(label_name,top,left,w,h);
         console.log("label", key);
       }
     },
+
+    drawRectAndText(label_name,l,t,w,h){
+      let _this = this;
+        //1 文本框
+        var text = new fabric.Text(label_name, {
+          originX: 'center',
+          originY: 'center',
+          left: t-4, 
+          top: l-4,
+          fill: 'yellow',
+          });
+
+          // 2 矩形框
+        var rect = new fabric.Rect({
+          top: l, //距离画布上边的距离
+          left:t, //距离画布左侧的距离，单位是像素
+          width: w, //矩形的宽度
+          height: h, //矩形的高度
+          fill: "#00000000",
+          evented: false, //rect 无法被选中
+          stroke: "red", // 边框原色
+          strokeWidth: 3, // 边框大小
+        });
+
+        //组合矩形和文本
+        var group = new fabric.Group(
+          [rect, text]);
+
+        //删除矩形框
+        _this.canvas.remove(_this.canvas.getActiveObject());
+        //3 添加矩形和文本信息
+        _this.canvas.add(group);
+
+    },
+
+
     getImginfo() {
       //发送ajax请求，将数据请求到放到imgInfos中,在munted中进行调用################################
       //##############################################
+    },
+    open() {
+      var _this = this;
+      this.$prompt("请输入标签", "新增标签", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /^\S{1,10}$/,
+        inputErrorMessage: "标签格式不正确",
+      })
+        .then(({ value }) => {
+          _this.labels.push(value);
+          this.$message({
+            type: "success",
+            message: "你的标签是: " + value,
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "取消输入",
+          });
+        });
     },
   },
 };
@@ -437,6 +610,7 @@ body {
   width: 400px;
   margin: 10px 10px 0 10px;
   padding: 0;
+  margin: 0 auto;
 }
 .canvas-container {
   position: absolute;
@@ -487,6 +661,7 @@ body {
   box-sizing: border-box;
   padding: 10px 0;
   background-color: black;
+  width: 500px;
 }
 .gallery-thumbs .swiper-slide {
   width: 25%;
@@ -521,5 +696,35 @@ body {
 }
 .context-menu-icon-add:before {
   content: "\EA01";
+}
+.list_label {
+  position: absolute;
+  right: -368px;
+  top: 10px;
+  z-index: 99999;
+  width: 200px;
+  ul {
+    list-style: none;
+    text-align: center;
+    border: 1px solid #ccc;
+    box-shadow: 10px 5px 5px #ccc;
+    li {
+      list-style-type: none;
+      &:nth-child(odd):hover {
+        background-color: red;
+        list-style: none;
+      }
+      &:nth-child(even):hover {
+        background-color: green;
+        list-style: none;
+      }
+      &:last-child {
+        background-color: #ccc;
+      }
+    }
+  }
+}
+.el-message-box__wrapper {
+  z-index: 999999 !important;
 }
 </style>
