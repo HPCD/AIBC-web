@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+"""
+@author:abner
+@file:vocdataset.py
+@ datetime:2020/9/11 16:18
+@software: PyCharm
+
+"""
+from xml.etree import ElementTree as ET
+
+from gluoncv.data import VOCDetection
+
+"""
+使用mxnet训练自己的数据所使用voc需要做的修改代码
+"""
+class ChangeAnanatationXml():
+    def __init__(self,filename):
+        self.xml_paht = filename
+        self.tree = ET.parse(self.xml_paht)
+        self.root = self.tree.getroot()
+    def change_node_text(self,org_att_text,new_att_text):
+        ob = self.root.findall("object")
+        # print(len(ob))
+        for na in ob:
+            name = na.find('name')
+            print("name " ,name)
+            if name.text == org_att_text:
+                print("ob ", name.text)
+                name.text = new_att_text
+
+
+        self.tree.write(self.xml_paht)
+
+
+import os
+
+
+def change():
+    path = "D:/abner/project/dataset/QAOCR/VOC2007/Annotations/"
+    for root, dir, files in os.walk(path):
+        for file in files:
+            f = os.path.join(root, file)
+            print(f)
+            cr = ChangeAnanatationXml(f)
+            cr.change_node_text('1', "one")
+
+class VOCLike(VOCDetection):
+    CLASSES = ['one','two','three','four','five','six']
+
+    def __init__(self, root, splits, transform=None, index_map=None, preload_label=True):
+        super(VOCLike, self).__init__(root, splits, transform, index_map, preload_label)
+
+if __name__=='__main__':
+    train_dataset = VOCLike(root= 'D:/abner/project/dataset/idcard/', splits=((2007, 'train'),))
+    print('length of dataset:', len(train_dataset))
+    print('label example:')
+
+    train_image, train_label = train_dataset[15]
+    import cv2
+    # cv2.imshow("d",train_image.asnumpy())
+    # cv2.waitKey(0)
+    print(train_label)
+    bboxes = train_label[:, :4]
+    cids = train_label[:, 4:5]
+    print('image:', train_image.shape)
+    print('bboxes:', bboxes.shape, 'class ids:', cids.shape)
+    # print(train_dataset[0])
+    print(train_dataset[0][1])
+    from matplotlib import pyplot as plt
+    from gluoncv.utils import viz
+
+    ax = viz.plot_bbox(train_image.asnumpy(), bboxes, labels=cids, class_names=train_dataset.classes)
+    plt.show()
