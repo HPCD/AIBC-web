@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+"""
+@author:abner
+@file:restructor_image_from_tfrecode.py
+@ datetime:2020/9/30 10:57
+@software: PyCharm
+
+"""
+import cv2
+import numpy as np
+import tensorflow as tf
+import  IPython.display as display
+import io
+from PIL import Image
+tf.executing_eagerly()
+tf.enable_eager_execution()
+tfrecord_path = "D:/abner/project/dataset/house/r3d.tfrecords"
+#根据record文件还原image
+with tf.Session() as sess:
+
+    feature = {'image': tf.FixedLenFeature(shape=(), dtype=tf.string),
+               'wall': tf.FixedLenFeature(shape=(), dtype=tf.string),
+               'close': tf.FixedLenFeature(shape=(), dtype=tf.string),
+               'room': tf.FixedLenFeature(shape=(), dtype=tf.string),
+               'close_wall': tf.FixedLenFeature(shape=(), dtype=tf.string)}
+
+    for i, record in enumerate(tf.python_io.tf_record_iterator(tfrecord_path)):
+
+        example = tf.train.Example()
+        example.ParseFromString(record)
+        feat = example.features.feature
+
+        img = feat['image'].bytes_list.value[0]
+        print(type(img))
+        # image = np.array(Image.open(io.BytesIO(img).getvalue()))
+        # print('PIL:\n', image)
+        # img_buffer = io.BytesIO(img)
+        print("buffer ",type(img))
+        jpg_as_np = np.frombuffer(img, dtype=np.uint8)
+        img = jpg_as_np.reshape((512, 512,3))
+        # img = cv2.imdecode(jpg_as_np, -1)
+
+        # img = cv2.resize(jpg_as_np,(jpg_as_np.shape[1], jpg_as_np.shape[0]))
+        # img = cv2.imdecode(jpg_as_np, flags=1)
+        # img = cv2.imdecode(jpg_as_np, flags=1)
+        # display.display(display.Image(data= jpg_as_np))
+        # image = cv2.cvtColor(jpg_as_np, cv2.COLOR_BGR2RGB)
+        cv2.imshow("d",img)
+        cv2.waitKey(2000)
+        print(type(img))
+
+
+    raw_image_dataset = tf.data.TFRecordDataset(tfrecord_path)
+
+
+    # @tf.function
+    def _parse_image_function(example_proto):
+        # Parse the input tf.Example proto using the dictionary above.
+        return tf.io.parse_single_example(example_proto, feature)
+
+
+    # reader = tf.TFRecordReader()
+    # _, serialized_example = reader.read(filename_queue)
+    parsed_image_dataset = raw_image_dataset.map(_parse_image_function)
+    print(parsed_image_dataset['image'][0])
+
+
+    for image_features in parsed_image_dataset:
+        image_raw = image_features['image'].numpy()
+        display.display(display.Image(data=image_raw))
+        # cv2.imshow("img", image_raw )
+        # cv2.waitKey(0)
+
+
+
